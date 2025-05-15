@@ -1,0 +1,252 @@
+import time
+import sys
+from pygame.locals import *
+import pygame
+
+# Game states
+LOADING = 0
+MENU = 1
+GAME = 2
+CREDITS = 3
+
+# Current game state
+game_state = LOADING
+
+# Tamany finestra
+VIEW_WIDTH = 640
+VIEW_HEIGHT = 360
+
+# iniciem pygame
+pygame.init()
+pantalla = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT))
+pygame.display.set_caption("Arcade")
+
+# Fonts
+font_big = pygame.font.SysFont('Arial', 50)
+font_medium = pygame.font.SysFont('Arial', 30)
+
+# Carreguem imatge de fons
+background_image = 'assets/fondo.jpg'
+background_width = pygame.image.load(background_image).convert().get_width()
+background_height = pygame.image.load(background_image).convert().get_height()
+
+# Límits per moure el fons enlloc del personatge
+MARGIN_X, MARGIN_Y = VIEW_WIDTH // 2, VIEW_HEIGHT // 2
+
+# Carreguem imatge inicial personatge
+player_image = pygame.image.load('assets/sprites/down0.png')
+protagonist_speed = 8
+
+# Posicions inicials del personatge i del fons
+player_rect = player_image.get_rect(midbottom=(VIEW_WIDTH // 2, VIEW_HEIGHT // 2))
+bg_x, bg_y = 0, 0
+
+# Control de FPS
+clock = pygame.time.Clock()
+fps = 30
+
+# Control de l'animació del personatge
+# 1 up. 2 down. 3 right. 4 left
+sprite_direction = "down"
+sprite_index = 0
+animation_protagonist_speed = 200
+sprite_frame_number = 3
+last_change_frame_time = 0
+idle = False
+
+# Loading screen variables
+loading_progress = 0
+loading_complete = False
+loading_start_time = pygame.time.get_ticks()
+
+
+def imprimir_pantalla_fons(image, x, y):
+    # Imprimeixo imatge de fons:
+    background = pygame.image.load(image).convert()
+    pantalla.blit(background, (x, y))
+
+
+def draw_loading_screen():
+    pantalla.fill((0, 0, 0))
+
+    # Draw loading text
+    loading_text = font_big.render("LOADING...", True, (255, 255, 255))
+    pantalla.blit(loading_text, (VIEW_WIDTH // 2 - loading_text.get_width() // 2, VIEW_HEIGHT // 3))
+
+    # Draw loading bar
+    bar_width = 400
+    bar_height = 20
+    bar_x = VIEW_WIDTH // 2 - bar_width // 2
+    bar_y = VIEW_HEIGHT // 2
+
+    # Border
+    pygame.draw.rect(pantalla, (255, 255, 255), (bar_x - 2, bar_y - 2, bar_width + 4, bar_height + 4), 2)
+
+    # Progress
+    global loading_progress
+    progress_width = int(bar_width * (loading_progress / 100))
+    pygame.draw.rect(pantalla, (0, 255, 0), (bar_x, bar_y, progress_width, bar_height))
+
+    # Press SPACE text
+    if loading_progress >= 100:
+        space_text = font_medium.render("Press SPACE to continue", True, (255, 255, 255))
+        pantalla.blit(space_text, (VIEW_WIDTH // 2 - space_text.get_width() // 2, VIEW_HEIGHT // 1.5))
+
+
+def update_loading_screen():
+    global loading_progress, loading_complete, loading_start_time
+
+    # Simulate loading process
+    current_time = pygame.time.get_ticks()
+    elapsed_time = current_time - loading_start_time
+
+    # Complete loading in 3 seconds
+    if elapsed_time < 3000:
+        loading_progress = min(100, int(elapsed_time / 3000 * 100))
+    else:
+        loading_progress = 100
+        loading_complete = True
+
+
+def draw_menu_screen():
+    pantalla.fill((0, 0, 50))
+
+    # Title
+    title_text = font_big.render("ARCADE GAME", True, (255, 255, 0))
+    pantalla.blit(title_text, (VIEW_WIDTH // 2 - title_text.get_width() // 2, VIEW_HEIGHT // 4))
+
+    # Menu options
+    option1 = font_medium.render("1. Start Game", True, (255, 255, 255))
+    option2 = font_medium.render("2. Credits", True, (255, 255, 255))
+    option3 = font_medium.render("3. Exit", True, (255, 255, 255))
+
+    pantalla.blit(option1, (VIEW_WIDTH // 2 - option1.get_width() // 2, VIEW_HEIGHT // 2))
+    pantalla.blit(option2, (VIEW_WIDTH // 2 - option2.get_width() // 2, VIEW_HEIGHT // 2 + 50))
+    pantalla.blit(option3, (VIEW_WIDTH // 2 - option3.get_width() // 2, VIEW_HEIGHT // 2 + 100))
+
+
+def draw_credits_screen():
+    pantalla.fill((20, 20, 50))
+
+    # Credits title
+    title_text = font_big.render("CREDITS", True, (255, 255, 0))
+    pantalla.blit(title_text, (VIEW_WIDTH // 2 - title_text.get_width() // 2, VIEW_HEIGHT // 4))
+
+    # Credits content
+    credit1 = font_medium.render("Developed by: Your Name", True, (255, 255, 255))
+    credit2 = font_medium.render("Art by: Your Artist", True, (255, 255, 255))
+    credit3 = font_medium.render("Music by: Your Musician", True, (255, 255, 255))
+    back_text = font_medium.render("Press SPACE to return to menu", True, (255, 255, 255))
+
+    pantalla.blit(credit1, (VIEW_WIDTH // 2 - credit1.get_width() // 2, VIEW_HEIGHT // 2))
+    pantalla.blit(credit2, (VIEW_WIDTH // 2 - credit2.get_width() // 2, VIEW_HEIGHT // 2 + 40))
+    pantalla.blit(credit3, (VIEW_WIDTH // 2 - credit3.get_width() // 2, VIEW_HEIGHT // 2 + 80))
+    pantalla.blit(back_text, (VIEW_WIDTH // 2 - back_text.get_width() // 2, VIEW_HEIGHT - 60))
+
+
+def handle_game_input():
+    global bg_x, bg_y, sprite_direction, idle, sprite_index, last_change_frame_time
+
+    current_time = pygame.time.get_ticks()
+    # Moviment del jugador
+    idle = True
+    keys = pygame.key.get_pressed()
+    if keys[K_UP]:
+        idle = False
+        sprite_direction = "up"
+        if player_rect.y > MARGIN_Y or bg_y >= 0:
+            player_rect.y = max(player_rect.y - protagonist_speed, player_rect.height // 2)
+        else:
+            bg_y = min(bg_y + protagonist_speed, 0)
+    if keys[K_DOWN]:
+        idle = False
+        sprite_direction = "down"
+        if player_rect.y < VIEW_HEIGHT - MARGIN_Y or bg_y <= VIEW_HEIGHT - background_height:
+            player_rect.y = min(player_rect.y + protagonist_speed, VIEW_HEIGHT - player_rect.height // 2)
+        else:
+            bg_y = max(bg_y - protagonist_speed, VIEW_HEIGHT - background_height)
+    if keys[K_RIGHT]:
+        idle = False
+        sprite_direction = "right"
+        if player_rect.x < VIEW_WIDTH - MARGIN_X or bg_x <= VIEW_WIDTH - background_width:
+            player_rect.x = min(player_rect.x + protagonist_speed, VIEW_WIDTH - player_rect.width // 2)
+        else:
+            bg_x = max(bg_x - protagonist_speed, VIEW_WIDTH - background_width)
+    if keys[K_LEFT]:
+        idle = False
+        sprite_direction = "left"
+        if player_rect.x > MARGIN_X or bg_x >= 0:
+            player_rect.x = max(player_rect.x - protagonist_speed, player_rect.width // 2)
+        else:
+            bg_x = min(bg_x + protagonist_speed, 0)
+
+    # frame number: (there are 3 frames only)
+    # selccionem la imatge a mostrar
+    if not idle:
+        if current_time - last_change_frame_time >= animation_protagonist_speed:
+            last_change_frame_time = current_time
+            sprite_index = sprite_index + 1
+            sprite_index = sprite_index % sprite_frame_number
+    else:
+        sprite_index = 0
+
+
+def draw_game_screen():
+    global player_image, player_rect
+
+    # Dibuixar el fons
+    imprimir_pantalla_fons(background_image, bg_x, bg_y)
+
+    # dibuixar el jugador
+    player_image = pygame.image.load('assets/sprites/' + sprite_direction + str(sprite_index) + '.png')
+    pantalla.blit(player_image, player_rect)
+
+    # mantenir el jugador dins la finestra
+    player_rect.clamp_ip(pantalla.get_rect())
+
+    pygame.draw.rect(pantalla, (255, 255, 0), (bg_x + 100, bg_y + 200, 100, 10))
+
+
+# Main game loop
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            # Loading screen controls
+            if game_state == LOADING and event.key == K_SPACE and loading_complete:
+                game_state = MENU
+
+            # Menu screen controls
+            elif game_state == MENU:
+                if event.key == K_1:
+                    game_state = GAME
+                elif event.key == K_2:
+                    game_state = CREDITS
+                elif event.key == K_3:
+                    pygame.quit()
+                    sys.exit()
+
+            # Credits screen controls
+            elif game_state == CREDITS and event.key == K_SPACE:
+                game_state = MENU
+
+    # Handle different game states
+    if game_state == LOADING:
+        update_loading_screen()
+        draw_loading_screen()
+
+    elif game_state == MENU:
+        draw_menu_screen()
+
+    elif game_state == GAME:
+        handle_game_input()
+        draw_game_screen()
+
+    elif game_state == CREDITS:
+        draw_credits_screen()
+
+    pygame.display.update()
+    clock.tick(fps)
