@@ -2,6 +2,7 @@ import time
 import sys
 from pygame.locals import *
 import pygame
+import os
 
 # Game states
 LOADING = 0
@@ -21,6 +22,32 @@ VIEW_HEIGHT = 600
 pygame.init()
 pantalla = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT))
 pygame.display.set_caption("Phantom reliks")
+
+# Inicializar el módulo de sonido
+pygame.mixer.init()
+
+# Cargar y reproducir música de fondo
+try:
+    music_file = 'assets/music/background_music.mp3'  # Ruta a la música
+    pygame.mixer.music.load(music_file)
+    pygame.mixer.music.play(-1)  # -1 significa reproducir en bucle infinito
+    pygame.mixer.music.set_volume(0.5)  # Volumen al 50%
+except:
+    print("No se pudo cargar el archivo de música. Asegúrate de que exista en 'assets/music/'")
+    # Intentar buscar cualquier archivo de música que pueda existir
+    try:
+        music_dir = 'assets/music'
+        if os.path.exists(music_dir):
+            for file in os.listdir(music_dir):
+                if file.endswith('.mp3') or file.endswith('.ogg') or file.endswith('.wav'):
+                    music_file = os.path.join(music_dir, file)
+                    pygame.mixer.music.load(music_file)
+                    pygame.mixer.music.play(-1)
+                    pygame.mixer.music.set_volume(0.5)
+                    print(f"Se ha cargado el archivo de música alternativo: {file}")
+                    break
+    except:
+        print("No se encontraron archivos de música alternativos.")
 
 # Fonts
 font_big = pygame.font.SysFont('Arial', 50)
@@ -478,6 +505,7 @@ def clear_screen_transition():
     pantalla.fill((0, 0, 0))
     pygame.display.update()
     # Pequeña pausa para evitar parpadeos o problemas de renderizado
+    # No detenemos la música aquí
     pygame.time.wait(50)
 
 
@@ -485,6 +513,8 @@ def clear_screen_transition():
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            # Asegurarse de detener la música antes de salir
+            pygame.mixer.music.stop()
             pygame.quit()
             sys.exit()
 
@@ -508,6 +538,8 @@ while True:
                 elif event.key == K_2:
                     game_state = CREDITS
                 elif event.key == K_3 or event.key == K_ESCAPE:
+                    # Asegurarse de detener la música antes de salir
+                    pygame.mixer.music.stop()
                     pygame.quit()
                     sys.exit()
 
