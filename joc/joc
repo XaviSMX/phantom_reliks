@@ -20,7 +20,7 @@ VIEW_HEIGHT = 600
 # iniciem pygame
 pygame.init()
 pantalla = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT))
-pygame.display.set_caption("Juego Arcade - Personaje Interactuable")
+pygame.display.set_caption("Phantom reliks")
 
 # Fonts
 font_big = pygame.font.SysFont('Arial', 50)
@@ -47,7 +47,6 @@ MARGIN_X, MARGIN_Y = VIEW_WIDTH // 2, VIEW_HEIGHT // 2
 # Carreguem imatge inicial personatge
 player_image = pygame.image.load('assets/sprites/down0.png')
 protagonist_speed = 8
-
 
 # Colocamos el personaje inicialmente en la posición 700x900 del fondo
 # Para esto, calculamos la posición del bg_x y bg_y para que el personaje aparezca en esas coordenadas
@@ -105,99 +104,41 @@ interaction_distance = 60
 
 # Diálogos del NPC
 npc_dialogs = [
-    "¡Ayuda! He perdido mi calabera",
-    "la he perdido y no se donde esta.",
-    "¿Puedes ayudarme ?",
-    "Ves a por la calavera porfavor.",
-    "ahora te sacare al menu por asustarme."
+    "¡Ayuda! esto esta por empezar",
+    "No puedo crerlo, estas aqui",
+    "no pidas mucho esto es una alpha ",
+    "¿Ya que estas? ¿deberias ganar?",
+    "Venga va te lo mereces por escucharme",
+    "ahora te sacare al menu por asustarme ",
+    "boooo ooooo  ."
 ]
 current_dialog = 0
 
+# Definición de zonas de colisión basadas en la imagen del mapa
+# Formato: [x1, y1, x2, y2] donde (x1,y1) es la esquina superior izquierda y (x2,y2) es la esquina inferior derecha
 collision_zones = [
-    # MONTAÑAS SUPERIORES (alrededor del castillo)
-    [150, 350, 350, 500],  # Cima montaña superior izquierda
-    [650, 350, 850, 500],  # Cima montaña superior derecha
+    # Bordes del mapa
+    [0, 0, 1000, 300],  # Agua en la parte superior
+    [0, 0, 150, 1200],  # Borde izquierdo
+    [900, 0, 1000, 1000],  # Borde derecho
+    [0, 200, 400, 600],  # Borde inferior
 
-    # MONTAÑAS CENTRALES (ambos lados del camino)
-    # Lado izquierdo - Siguiendo el contorno exacto
-    [100, 500, 180, 530],  # Borde superior montaña central izquierda
-    [180, 530, 250, 550],  # Continuación borde superior
-    [250, 550, 300, 570],  # Tramo final borde superior
-    [100, 530, 150, 600],  # Lateral izquierdo montaña central
-    [150, 600, 200, 650],  # Continuación lateral bajando
-    [200, 650, 260, 680],  # Curva hacia el camino
-    [260, 680, 320, 700],  # Acercándose al camino central
+    # Colisión larga en el agua (puente en el centro superior)
+    [150, 0, 500, 200],  # Parte izquierda del agua
+    [700, 0, 1500, 200],  # Parte derecha del agua
 
-    # Lado derecho - Siguiendo el contorno exacto
-    [700, 500, 780, 530],  # Borde superior montaña central derecha
-    [650, 530, 700, 550],  # Continuación borde superior
-    [600, 550, 650, 570],  # Tramo final borde superior
-    [780, 530, 850, 600],  # Lateral derecho montaña central
-    [750, 600, 800, 650],  # Continuación lateral bajando
-    [700, 650, 750, 680],  # Curva hacia el camino
-    [650, 680, 700, 700],  # Acercándose al camino central
-
-    # MONTAÑAS INFERIORES
-    [0, 350, 160, 450],  # Montaña lateral superior izquierda
-    [0, 450, 100, 550],  # Continuación montaña lateral izquierda
-    [0, 550, 120, 650],  # Terreno elevado izquierdo
-    [0, 650, 150, 750],  # Continuación montaña inferior izquierda
-    [0, 750, 180, 850],  # Montaña esquina inferior izquierda
-    [150, 850, 250, 950],  # Extensión montaña inferior izquierda
-
-    # Lado derecho
-    [840, 350, 1000, 450],  # Montaña lateral superior derecha
-    [900, 450, 1000, 550],  # Continuación montaña lateral derecha
-    [880, 550, 1000, 650],  # Terreno elevado derecho
-    [850, 650, 1000, 750],  # Continuación montaña inferior derecha
-    [820, 750, 1000, 850],  # Montaña esquina inferior derecha
-    [750, 850, 850, 950],  # Extensión montaña inferior derecha
-
-    # PIEDRAS Y ROCAS en la entrada al área gris
-    [320, 630, 390, 670],  # Rocas lado izquierdo entrada
-    [610, 630, 680, 670],  # Rocas lado derecho entrada
-
-    # MONTAÑAS Y FORMACIONES ROCOSAS EN ÁREA GRIS
-    [300, 700, 350, 750],  # Formación rocosa izquierda
-    [650, 700, 700, 750],  # Formación rocosa derecha
-    [450, 800, 500, 850],  # Formación rocosa inferior
-    [400, 650, 450, 700],  # Formación rocosa superior
-    [250, 750, 300, 800],  # Rocas esquina inferior izquierda
-    [700, 750, 750, 800],  # Rocas esquina inferior derecha
-
-    # COLINAS Y ELEVACIONES ADICIONALES
-    # Colinas superiores
-    [50, 200, 550, 850],  # Colina superior izquierda
-    [650, 200, 800, 350],  # Colina superior derecha
-
-    # Colinas laterales (flancos del mapa)
-    [50, 350, 100, 450],  # Colina lateral izquierda superior
-    [50, 550, 100, 650],  # Colina lateral izquierda media
-    [50, 750, 100, 850],  # Colina lateral izquierda inferior
-
-    [900, 350, 950, 450],  # Colina lateral derecha superior
-    [900, 550, 950, 650],  # Colina lateral derecha media
-    [900, 750, 950, 850],  # Colina lateral derecha inferior
-
-    # Colinas en parte inferior del mapa
-    [200, 850, 300, 950],  # Colina inferior izquierda
-    [700, 850, 800, 950],  # Colina inferior derecha
-    [400, 850, 600, 950],  # Colina inferior central
-
-    # Elevaciones menores alrededor del camino
-    [350, 550, 400, 600],  # Elevación izquierda del camino principal
-    [600, 550, 650, 600],  # Elevación derecha del camino principal
-
-    # Elevaciones interiores área gris
-    [350, 700, 400, 750],  # Elevación interior izquierda
-    [600, 700, 650, 750],  # Elevación interior derecha
-    [450, 750, 550, 800],  # Elevación interior inferior
+    # Dos colisiones separadas en el centro del mapa
+    [600, 400, 900, 600],  # Obstáculo en centro-izquierda
+    [900, 500, 1000, 600]  # Obstáculo en centro-derecha
 ]
+
 
 def check_collision(x, y):
     """
-    Comprueba si la posición (x, y) está dentro de alguna zona de colisión
-    Devuelve True si hay colisión, False si no la hay
+    Comprueba si la posición (x,y) colisiona con alguna zona definida
+    en la lista collision_zones.
+
+    Retorna True si hay colisión, False en caso contrario.
     """
     for zone in collision_zones:
         if zone[0] <= x <= zone[2] and zone[1] <= y <= zone[3]:
@@ -277,16 +218,16 @@ def draw_menu_screen():
 
 
 def draw_credits_screen():
-    pantalla.fill((20, 20, 50))
+    pantalla.fill((0, 0, 0))
 
     # Credits title
-    title_text = font_big.render("CREDIToS", True, (255, 255, 0))
+    title_text = font_big.render("CREDITOS", True, (255, 255, 255))
     pantalla.blit(title_text, (VIEW_WIDTH // 2 - title_text.get_width() // 2, VIEW_HEIGHT // 4))
 
     # Credits content
     credit1 = font_medium.render("Hecho por: Xavi Balaña", True, (255, 255, 255))
     credit2 = font_medium.render("Arte hecho por:Xavi Balaña", True, (255, 255, 255))
-    credit3 = font_medium.render("Musica por: Your Musician", True, (255, 255, 255))
+    credit3 = font_medium.render("Musica por:", True, (255, 255, 255))
     back_text = font_medium.render("Press SPACE to return to menu", True, (255, 255, 255))
 
     pantalla.blit(credit1, (VIEW_WIDTH // 2 - credit1.get_width() // 2, VIEW_HEIGHT // 2))
@@ -450,7 +391,7 @@ def draw_game_screen():
     # Cargar el sprite actual del NPC
     load_npc_sprite()
 
-    # Dibuja el NPC en la posición 700x900 del mundo
+    # Dibujar  el NPC en la posición 700x900 del mundo
     # Convertir coordenadas del mundo a coordenadas de pantalla
     npc_screen_x = npc_x + bg_x
     npc_screen_y = npc_y + bg_y
@@ -487,8 +428,6 @@ def draw_game_screen():
     pantalla.blit(pos_text, (10, 50))
 
     # DEBUG: Dibujar zonas de colisión (útil para depuración)
-    # Comentar esta sección para producción
-    """
     for zone in collision_zones:
         x1, y1, x2, y2 = zone
         # Convertir coordenadas del mundo a coordenadas de pantalla
@@ -498,11 +437,11 @@ def draw_game_screen():
         screen_y2 = y2 + bg_y
 
         # Dibujar un rectángulo semitransparente para la zona de colisión
-        collision_surface = pygame.Surface((screen_x2 - screen_x1, screen_y2 - screen_y1))
-        collision_surface.set_alpha(100)  # Semitransparente
-        collision_surface.fill((255, 0, 0))  # Color rojo
-        pantalla.blit(collision_surface, (screen_x1, screen_y1))
-    """
+        if screen_x2 > 0 and screen_x1 < VIEW_WIDTH and screen_y2 > 0 and screen_y1 < VIEW_HEIGHT:
+            collision_surface = pygame.Surface((screen_x2 - screen_x1, screen_y2 - screen_y1))
+            collision_surface.set_alpha(0)  # Muy transparente para ver el mapa
+
+            pantalla.blit(collision_surface, (screen_x1, screen_y1))
 
 
 def draw_dialog_screen():
@@ -562,8 +501,8 @@ while True:
                     clear_screen_transition()
                     # Restablecer posición del personaje y del fondo
                     player_rect = player_image.get_rect(center=(VIEW_WIDTH // 2, VIEW_HEIGHT // 2))
-                    bg_x = -(700 - VIEW_WIDTH // 2)
-                    bg_y = -(900 - VIEW_HEIGHT // 2)
+                    bg_x = -(500 - VIEW_WIDTH // 2)
+                    bg_y = -(500 - VIEW_HEIGHT // 2)
                     # Cambiar al estado de juego
                     game_state = GAME
                 elif event.key == K_2:
